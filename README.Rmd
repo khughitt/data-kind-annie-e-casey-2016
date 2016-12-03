@@ -1,0 +1,158 @@
+---
+title: "DataKind 2016: Annie E. Casey Foundation"
+author: V. Keith Hughitt
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  md_document:
+    variant: markdown_github
+---
+
+Overview
+========
+
+...
+
+Data
+----
+
+### Allegheny County Aggregate Data.xlsx
+
+### Behavioral Health Services.csv
+
+### CYF Active 2010 to 2016-11-09.csv
+
+### HomelessShelters(1).csv
+
+### IDS Variables.xlsx
+
+### PGHSNAP - Neighborhoods_ All Raw Data.xlsx
+
+### rp_placements_clean.csv
+
+Note: some of the files ending with "(1).csv" have been renamed to ".csv".
+
+Data Preparation
+================
+
+```{r load_libraries}
+library('readr')
+library('dplyr')
+library('ggplot2')
+library('gplots')
+library('knitr')
+library('venneuler')
+```
+
+```{r}
+# Homeless shelters
+shelters <- read_csv('data/raw/HomelessShelters.csv.gz', progress=FALSE) %>%
+    rename(mci=MCI_ID_OR_HMIS_CLIENT_ID)
+
+# Behavioral Health Services
+bhs <- read_csv('data/raw/Behavioral Health Services.csv.gz', progress=FALSE) %>%
+    rename(mci=MCI_UNIQ_ID)
+
+# CYF Active
+cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE) %>%
+    rename(mci=MCI_ID)
+```
+
+```{r results='asis'}
+# Individuals in all three datasets
+common_ids <- intersect(intersect(bhs$mci, cyf$mci), shelters$mci)
+
+# Venn Diagram
+bhs_ids <- unique(bhs$
+vd <- venneuler(c(bhs=0.3, B=0.3, C=1.1, "A&B"=0.1, "A&C"=0.2, "B&C"=0.1 ,"A&B&C"=0.1))
+
+# Drop rows for individuals with missing data
+cat(sprintf('- Dropping %d / %d rows from shelter dataset (not shared)\n', 
+            sum(!shelters$mci %in% common_ids),
+            nrow(shelters)))
+shelters <- shelters[shelters$mci %in% common_ids,]
+
+cat(sprintf('- Dropping %d / %d rows from behavior dataset (not shared)\n', 
+            sum(!bhs$mci %in% common_ids),
+            nrow(bhs)))
+bhs <- bhs[bhs$mci %in% common_ids,]
+
+cat(sprintf('- Dropping %d / %d rows from CYF dataset (not shared)\n', 
+            sum(!cyf$mci %in% common_ids),
+            nrow(cyf)))
+cyf <- cyf[cyf$mci %in% common_ids,]
+# Placements
+#placements <- read_csv('data/raw/rp_placements_clean.csv', row_names=FALSE)
+```
+
+Exploratory Data Analaysis
+==========================
+
+### Behavior and Health Services
+
+#### Overview
+
+```{r, bhs_hist}
+dim(bhs)
+range(table(bhs$mci))
+hist(table(bhs$mci), main='Number of BHS entries per individual')
+```
+
+```{r, results='asis'}
+kable(head(bhs))
+```
+
+#### Single Individual
+
+```{r results='asis'}
+example_youth <- bhs$mci[1] 
+bhs %>% 
+    filter(mci == example_youth) %>% 
+    kable
+```
+
+### Homeless shelters
+
+```{r, shelters_hist}
+dim(shelters)
+range(table(shelters$mci))
+hist(table(shelters$mci), main='Number of homeless shelter entries per individual')
+```
+
+```{r, results='asis'}
+kable(head(shelters))
+```
+
+#### Single Individual
+
+```{r results='asis'}
+shelters %>% 
+    filter(mci == example_youth) %>% 
+    kable
+```
+
+### CYF
+
+```{r, cyf_hist}
+dim(cyf)
+range(table(cyf$mci))
+hist(table(cyf$mci), main='Number of homeless shelter entries per individual')
+```
+
+```{r, results='asis'}
+kable(head(cyf))
+```
+
+#### Single Individual
+
+```{r results='asis'}
+cyf %>% 
+    filter(mci == example_youth) %>% 
+    kable
+```
+
+System Info
+===========
+
+```{r}
+sessionInfo()
+```
