@@ -100,6 +100,15 @@ cat(sprintf('- Dropping %d / %d rows from CYF dataset (not shared)\n',
 cyf <- cyf[cyf$mci %in% common_ids,]
 # Placements
 #placements <- read_csv('data/raw/rp_placements_clean.csv', row_names=FALSE)
+
+# counts per dataset
+data_counts <- merge(merge(
+    bhs %>% group_by(mci) %>% summarize(num_bhs=n()),
+    cyf %>% group_by(mci) %>% summarize(num_cyf=n()), by='mci'),
+    shelters %>% group_by(mci) %>% summarize(num_shelter=n()), by='mci')
+
+# individuals with multiple rows in all three tables
+multi_row_individuals <- data_counts[apply(data_counts, 1, min) > 1,]$mci
 ```
 
 Exploratory Data Analaysis
@@ -122,7 +131,9 @@ kable(head(bhs))
 #### Single Individual
 
 ```{r results='asis'}
-example_youth <- bhs$mci[1] 
+# random individual with multiple entries in each table
+example_youth <- multi_row_individuals[1]
+
 bhs %>% 
     filter(mci == example_youth) %>% 
     kable
