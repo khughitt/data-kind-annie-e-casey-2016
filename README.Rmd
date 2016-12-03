@@ -57,6 +57,9 @@ library('gplots')
 library('knitr')
 library('venneuler')
 library('viridis')
+library('GGally')
+
+set.seed(1)
 
 opts_chunk$set(fig.width=1080/96,
                fig.height=1080/96,
@@ -129,25 +132,25 @@ Data overview
 ### Behavior and Health Services
 
 ```{r, bhs_hist}
-dim(bhs_subset)
-range(table(bhs_subset$mci))
-hist(table(bhs_subset$mci), main='Number of BHS entries per individual')
+dim(bhs)
+range(table(bhs$mci))
+hist(table(bhs$mci), main='Number of BHS entries per individual')
 ```
 
 ### CYF
 
 ```{r, cyf_hist}
-dim(cyf_subset)
-range(table(cyf_subset$mci))
-hist(table(cyf_subset$mci), main='Number of homeless shelter entries per individual')
+dim(cyf)
+range(table(cyf$mci))
+hist(table(cyf$mci), main='Number of homeless shelter entries per individual')
 ```
 
 ### Homeless shelters
 
 ```{r, shelters_hist}
-dim(shelters_subset)
-range(table(shelters_subset$mci))
-hist(table(shelters_subset$mci), main='Number of homeless shelter entries per individual')
+dim(shelters)
+range(table(shelters$mci))
+hist(table(shelters$mci), main='Number of homeless shelter entries per individual')
 ```
 
 Preview of data for a single individual
@@ -179,7 +182,7 @@ bhs %>%
 ### CYF
 
 ```{r results='asis'}
-cyf_subset %>% 
+cyf %>% 
     filter(mci == example_youth) %>% 
     kable
 ```
@@ -187,7 +190,7 @@ cyf_subset %>%
 ### Shelters
 
 ```{r results='asis'}
-shelters_subset %>% 
+shelters %>% 
     filter(mci == example_youth) %>% 
     kable
 ```
@@ -205,6 +208,8 @@ BHS, CYF, and Shelters
 ids_to_use <- common_ids
 analysis_name <- 'combined'
 analysis_version <- 'v1.1'
+
+datasets <- c('bhs', 'cyf', 'shelters')
 ```
 
 ```{r child='src/results.Rmd'}
