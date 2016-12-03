@@ -225,6 +225,11 @@ dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'),
 
 # Drop the two rows with NA's
 dat <- dat[complete.cases(dat),]
+
+# Drop outliers detected in PCA plot
+# 100050347 - min_stay = 730488
+# 100308371 - total_units 23,468
+dat <- dat[!dat$mci %in% c(100050347, 1000308371),]
 ```
 
 Variable correlation heatmap
@@ -248,6 +253,32 @@ Individual correlation heatmap
 ```{r, individual_heatmap}
 cor_mat <- cor(t(dat_numeric), method='spearman')
 heatmap.2(cor_mat, trace='none', col=viridis)
+```
+
+PCA of individuals
+
+```{r, individual_pca}
+prcomp_results <- prcomp(dat_numeric)
+var_explained <- round(summary(prcomp_results)$importance[2,] * 100, 2)
+
+xl <- sprintf("PC1 (%.2f%% variance)", var_explained[1])
+yl <- sprintf("PC2 (%.2f%% variance)", var_explained[2])
+
+# Dataframe for PCA plot
+df <- data.frame(id=dat[,'mci'],
+                 pc1=prcomp_results$x[,1], 
+                 pc2=prcomp_results$x[,2],
+                 gender=dat[,'GENDER'],
+                 race=dat[,'RACE'])
+# PCA plot
+plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
+    geom_point(stat="identity",size=5) +
+    geom_text(aes(label=id), angle=45, size=4, vjust=2) +
+    #scale_shape_manual(values=1:nlevels(batch)) +
+    xlab(xl) + ylab(yl) +
+    ggtitle(sprintf("PCA: Individuals")) +
+    theme(axis.ticks=element_blank(), axis.text.x=element_text(angle=-90))
+plot(plt)
 ```
 
 System Info

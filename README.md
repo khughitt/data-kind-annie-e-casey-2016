@@ -28,10 +28,39 @@ Data Preparation
 ``` r
 library('readr')
 library('dplyr')
+```
+
+    ## 
+    ## Attaching package: 'dplyr'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
+
+``` r
 library('ggplot2')
 library('gplots')
+```
+
+    ## 
+    ## Attaching package: 'gplots'
+
+    ## The following object is masked from 'package:stats':
+    ## 
+    ##     lowess
+
+``` r
 library('knitr')
 library('venneuler')
+```
+
+    ## Loading required package: rJava
+
+``` r
 library('viridis')
 
 opts_chunk$set(fig.width=1080/96,
@@ -398,6 +427,11 @@ dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'),
 
 # Drop the two rows with NA's
 dat <- dat[complete.cases(dat),]
+
+# Drop outliers detected in PCA plot
+# 100050347 - min_stay = 730488
+# 100308371 - total_units 23,468
+dat <- dat[!dat$mci %in% c(100050347, 1000308371),]
 ```
 
 Variable correlation heatmap
@@ -426,6 +460,34 @@ heatmap.2(cor_mat, trace='none', col=viridis)
 ```
 
 ![](README_files/figure-markdown_github/individual_heatmap-1.png)
+
+PCA of individuals
+
+``` r
+prcomp_results <- prcomp(dat_numeric)
+var_explained <- round(summary(prcomp_results)$importance[2,] * 100, 2)
+
+xl <- sprintf("PC1 (%.2f%% variance)", var_explained[1])
+yl <- sprintf("PC2 (%.2f%% variance)", var_explained[2])
+
+# Dataframe for PCA plot
+df <- data.frame(id=dat[,'mci'],
+                 pc1=prcomp_results$x[,1], 
+                 pc2=prcomp_results$x[,2],
+                 gender=dat[,'GENDER'],
+                 race=dat[,'RACE'])
+# PCA plot
+plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
+    geom_point(stat="identity",size=5) +
+    geom_text(aes(label=id), angle=45, size=4, vjust=2) +
+    #scale_shape_manual(values=1:nlevels(batch)) +
+    xlab(xl) + ylab(yl) +
+    ggtitle(sprintf("PCA: Individuals")) +
+    theme(axis.ticks=element_blank(), axis.text.x=element_text(angle=-90))
+plot(plt)
+```
+
+![](README_files/figure-markdown_github/individual_pca-1.png)
 
 System Info
 ===========
@@ -463,5 +525,5 @@ sessionInfo()
     ## [16] htmltools_0.3.5     yaml_2.1.14         lazyeval_0.2.0.9000
     ## [19] assertthat_0.1      rprojroot_1.1       digest_0.6.10      
     ## [22] tibble_1.2          gridExtra_2.2.1     bitops_1.0-6       
-    ## [25] evaluate_0.10       gdata_2.17.0        stringi_1.1.2      
-    ## [28] scales_0.4.1        backports_1.0.4
+    ## [25] evaluate_0.10       labeling_0.3        gdata_2.17.0       
+    ## [28] stringi_1.1.2       scales_0.4.1        backports_1.0.4
