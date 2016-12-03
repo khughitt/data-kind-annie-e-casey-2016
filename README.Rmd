@@ -281,6 +281,10 @@ plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
 plot(plt)
 ```
 
+```{r}
+write.csv(dat, file='data/combined/combined_v1.0.csv')
+```
+
 System Info
 ===========
 
