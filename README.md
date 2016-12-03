@@ -32,6 +32,13 @@ library('ggplot2')
 library('gplots')
 library('knitr')
 library('venneuler')
+library('viridis')
+
+opts_chunk$set(fig.width=1080/96,
+               fig.height=1080/96,
+               dpi=96)
+options(digits=4)
+options(stringsAsFactors=FALSE)
 ```
 
 ``` r
@@ -230,14 +237,14 @@ hist(table(bhs$mci), main='Number of BHS entries per individual')
 kable(head(bhs))
 ```
 
-|  CL\_ID|  SERVICE\_RENDERED\_ROW\_ID| SVC\_START\_DT  | SVC\_END\_DT    |         mci| PAYER | DHS\_OFFICE | SERVICE\_NAME                                  | SERVICE\_CODE | COUNTY\_COST\_CENTER              | PRVDR\_NAME                       |  CNTY\_TOT|  TOT\_UNITS| SUBMT\_DT       |  SERVICE\_SEQ|  CYF\_ACTIVE\_AT\_SERVICE|  CYF\_PLC\_AT\_SERVICE|
-|-------:|---------------------------:|:----------------|:----------------|-----------:|:------|:------------|:-----------------------------------------------|:--------------|:----------------------------------|:----------------------------------|----------:|-----------:|:----------------|-------------:|-------------------------:|----------------------:|
-|  845961|                   954299218| 6/24/2015 0:00  | 6/24/2015 0:00  |  1000000422| CCBH  | MH          | Walk-in Crisis                                 | H2011         | Mental Health Crisis Intervention | WESTERN PSYCHIATRIC INST & CLINIC |         48|           3| 7/10/2015 0:00  |             1|                         1|                      0|
-|  964739|                   806722941| 11/2/2013 0:00  | 11/2/2013 0:00  |  1000000587| CCBH  | MH          | MH-Outpatient Practitioner-Initial Intake Eval | H0004HN       | Does Not Apply                    | MALAZICH LORI A.                  |         22|           1| 11/15/2013 0:00 |             1|                         1|                      1|
-|  964739|                   806852525| 11/9/2013 0:00  | 11/9/2013 0:00  |  1000000587| CCBH  | MH          | MH-Outpatient Practitioner Individual Therapy  | H0004HB       | Does Not Apply                    | MALAZICH LORI A.                  |         96|           4| 11/22/2013 0:00 |             2|                         1|                      1|
-|  964739|                   806909719| 11/11/2013 0:00 | 11/11/2013 0:00 |  1000000587| CCBH  | MH          | Blended Mental Health Case Management          | T1017U7       | Does Not Apply                    | MERCY BEHAVORIAL HEALTH           |        360|          13| 1/24/2014 0:00  |             3|                         1|                      1|
-|  964739|                   806883073| 11/16/2013 0:00 | 11/16/2013 0:00 |  1000000587| CCBH  | MH          | MH-Outpatient Practitioner Individual Therapy  | H0004HB       | Does Not Apply                    | MALAZICH LORI A.                  |         96|           4| 11/22/2013 0:00 |             4|                         1|                      1|
-|  964739|                   806797079| 11/20/2013 0:00 | 11/20/2013 0:00 |  1000000587| CCBH  | MH          | Blended Mental Health Case Management          | T1017U7       | Does Not Apply                    | MERCY BEHAVORIAL HEALTH           |        416|          15| 1/24/2014 0:00  |             5|                         1|                      1|
+|  CL\_ID|  SERVICE\_RENDERED\_ROW\_ID| SVC\_START\_DT  | SVC\_END\_DT    |    mci| PAYER | DHS\_OFFICE | SERVICE\_NAME                                  | SERVICE\_CODE | COUNTY\_COST\_CENTER              | PRVDR\_NAME                       |  CNTY\_TOT|  TOT\_UNITS| SUBMT\_DT       |  SERVICE\_SEQ|  CYF\_ACTIVE\_AT\_SERVICE|  CYF\_PLC\_AT\_SERVICE|
+|-------:|---------------------------:|:----------------|:----------------|------:|:------|:------------|:-----------------------------------------------|:--------------|:----------------------------------|:----------------------------------|----------:|-----------:|:----------------|-------------:|-------------------------:|----------------------:|
+|  845961|                   954299218| 6/24/2015 0:00  | 6/24/2015 0:00  |  1e+09| CCBH  | MH          | Walk-in Crisis                                 | H2011         | Mental Health Crisis Intervention | WESTERN PSYCHIATRIC INST & CLINIC |         48|           3| 7/10/2015 0:00  |             1|                         1|                      0|
+|  964739|                   806722941| 11/2/2013 0:00  | 11/2/2013 0:00  |  1e+09| CCBH  | MH          | MH-Outpatient Practitioner-Initial Intake Eval | H0004HN       | Does Not Apply                    | MALAZICH LORI A.                  |         22|           1| 11/15/2013 0:00 |             1|                         1|                      1|
+|  964739|                   806852525| 11/9/2013 0:00  | 11/9/2013 0:00  |  1e+09| CCBH  | MH          | MH-Outpatient Practitioner Individual Therapy  | H0004HB       | Does Not Apply                    | MALAZICH LORI A.                  |         96|           4| 11/22/2013 0:00 |             2|                         1|                      1|
+|  964739|                   806909719| 11/11/2013 0:00 | 11/11/2013 0:00 |  1e+09| CCBH  | MH          | Blended Mental Health Case Management          | T1017U7       | Does Not Apply                    | MERCY BEHAVORIAL HEALTH           |        360|          13| 1/24/2014 0:00  |             3|                         1|                      1|
+|  964739|                   806883073| 11/16/2013 0:00 | 11/16/2013 0:00 |  1e+09| CCBH  | MH          | MH-Outpatient Practitioner Individual Therapy  | H0004HB       | Does Not Apply                    | MALAZICH LORI A.                  |         96|           4| 11/22/2013 0:00 |             4|                         1|                      1|
+|  964739|                   806797079| 11/20/2013 0:00 | 11/20/2013 0:00 |  1e+09| CCBH  | MH          | Blended Mental Health Case Management          | T1017U7       | Does Not Apply                    | MERCY BEHAVORIAL HEALTH           |        416|          15| 1/24/2014 0:00  |             5|                         1|                      1|
 
 #### Single Individual
 
@@ -251,18 +258,18 @@ bhs %>%
     kable
 ```
 
-|  CL\_ID|  SERVICE\_RENDERED\_ROW\_ID| SVC\_START\_DT | SVC\_END\_DT   |         mci| PAYER | DHS\_OFFICE | SERVICE\_NAME                                             | SERVICE\_CODE | COUNTY\_COST\_CENTER | PRVDR\_NAME         |  CNTY\_TOT|  TOT\_UNITS| SUBMT\_DT      |  SERVICE\_SEQ|  CYF\_ACTIVE\_AT\_SERVICE|  CYF\_PLC\_AT\_SERVICE|
-|-------:|---------------------------:|:---------------|:---------------|-----------:|:------|:------------|:----------------------------------------------------------|:--------------|:---------------------|:--------------------|----------:|-----------:|:---------------|-------------:|-------------------------:|----------------------:|
-|  812755|                   612524294| 1/1/2011 0:00  | 1/31/2011 0:00 |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    6508.14|          31| 5/18/2012 0:00 |             1|                         1|                      0|
-|  875536|                   612524294| 1/1/2011 0:00  | 1/31/2011 0:00 |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    6508.14|          31| 5/18/2012 0:00 |             1|                         1|                      0|
-|  812755|                   612524295| 1/1/2011 0:00  | 1/31/2011 0:00 |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    6198.14|          31| 2/18/2011 0:00 |             2|                         1|                      0|
-|  875536|                   612524295| 1/1/2011 0:00  | 1/31/2011 0:00 |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    6198.14|          31| 2/18/2011 0:00 |             2|                         1|                      0|
-|  812755|                   612524296| 1/1/2011 0:00  | 1/31/2011 0:00 |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |   -6198.14|         -31| 5/18/2012 0:00 |             3|                         1|                      0|
-|  875536|                   612524296| 1/1/2011 0:00  | 1/31/2011 0:00 |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |   -6198.14|         -31| 5/18/2012 0:00 |             3|                         1|                      0|
-|  812755|                   612996993| 2/1/2011 0:00  | 2/1/2011 0:00  |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    2799.16|          14| 3/25/2011 0:00 |             4|                         1|                      0|
-|  875536|                   612996993| 2/1/2011 0:00  | 2/1/2011 0:00  |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    2799.16|          14| 3/25/2011 0:00 |             4|                         1|                      0|
-|  812755|                   612996994| 2/1/2011 0:00  | 2/1/2011 0:00  |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    2939.16|          14| 5/18/2012 0:00 |             5|                         1|                      0|
-|  875536|                   612996994| 2/1/2011 0:00  | 2/1/2011 0:00  |  1000048110| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |    2939.16|          14| 5/18/2012 0:00 |             5|                         1|                      0|
+|  CL\_ID|  SERVICE\_RENDERED\_ROW\_ID| SVC\_START\_DT | SVC\_END\_DT   |    mci| PAYER | DHS\_OFFICE | SERVICE\_NAME                                             | SERVICE\_CODE | COUNTY\_COST\_CENTER | PRVDR\_NAME         |  CNTY\_TOT|  TOT\_UNITS| SUBMT\_DT      |  SERVICE\_SEQ|  CYF\_ACTIVE\_AT\_SERVICE|  CYF\_PLC\_AT\_SERVICE|
+|-------:|---------------------------:|:---------------|:---------------|------:|:------|:------------|:----------------------------------------------------------|:--------------|:---------------------|:--------------------|----------:|-----------:|:---------------|-------------:|-------------------------:|----------------------:|
+|  812755|                   612524294| 1/1/2011 0:00  | 1/31/2011 0:00 |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       6508|          31| 5/18/2012 0:00 |             1|                         1|                      0|
+|  875536|                   612524294| 1/1/2011 0:00  | 1/31/2011 0:00 |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       6508|          31| 5/18/2012 0:00 |             1|                         1|                      0|
+|  812755|                   612524295| 1/1/2011 0:00  | 1/31/2011 0:00 |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       6198|          31| 2/18/2011 0:00 |             2|                         1|                      0|
+|  875536|                   612524295| 1/1/2011 0:00  | 1/31/2011 0:00 |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       6198|          31| 2/18/2011 0:00 |             2|                         1|                      0|
+|  812755|                   612524296| 1/1/2011 0:00  | 1/31/2011 0:00 |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |      -6198|         -31| 5/18/2012 0:00 |             3|                         1|                      0|
+|  875536|                   612524296| 1/1/2011 0:00  | 1/31/2011 0:00 |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |      -6198|         -31| 5/18/2012 0:00 |             3|                         1|                      0|
+|  812755|                   612996993| 2/1/2011 0:00  | 2/1/2011 0:00  |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       2799|          14| 3/25/2011 0:00 |             4|                         1|                      0|
+|  875536|                   612996993| 2/1/2011 0:00  | 2/1/2011 0:00  |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       2799|          14| 3/25/2011 0:00 |             4|                         1|                      0|
+|  812755|                   612996994| 2/1/2011 0:00  | 2/1/2011 0:00  |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       2939|          14| 5/18/2012 0:00 |             5|                         1|                      0|
+|  875536|                   612996994| 2/1/2011 0:00  | 2/1/2011 0:00  |  1e+09| CCBH  | MH          | Residential Treatment Facility - Non Accredited: Level II | H0019HU       | Does Not Apply       | MARS HOME FOR YOUTH |       2939|          14| 5/18/2012 0:00 |             5|                         1|                      0|
 
 ### Homeless shelters
 
@@ -288,14 +295,14 @@ hist(table(shelters$mci), main='Number of homeless shelter entries per individua
 kable(head(shelters))
 ```
 
-|         mci|  FIRST\_INVOLVEMENT\_IN\_EPISODE|  LAST\_INVOLVEMENT\_IN\_EPISODE| PROJ\_INVOLVEMENT\_EPISODE\_START | PROJ\_INVOLVEMENT\_EPISODE\_END |  DURATION\_OF\_STAY| HUD\_PROJECT\_TYPE  |
-|-----------:|--------------------------------:|-------------------------------:|:----------------------------------|:--------------------------------|-------------------:|:--------------------|
-|  1000049489|                            20863|                           20863| 2/9/2015                          | 2/9/2105                        |               32872| CYF Rental Assist   |
-|  1000285813|                            36843|                           36843| 10/24/2016                        | 11/29/2016                      |                  36| Emergency Shelter   |
-|  1000150680|                            37172|                           37172| 11/8/2016                         | 11/8/2016                       |                   1| Services Only (SSO) |
-|  1000663946|                            37145|                           37145| 11/8/2016                         | 11/8/2016                       |                   1| CYF Rental Assist   |
-|  1000000422|                            37103|                           37103| 11/7/2016                         | 11/7/2016                       |                   1| CYF Rental Assist   |
-|  1000055121|                            37104|                           37104| 11/7/2016                         | 11/7/2016                       |                   1| CYF Rental Assist   |
+|        mci|  FIRST\_INVOLVEMENT\_IN\_EPISODE|  LAST\_INVOLVEMENT\_IN\_EPISODE| PROJ\_INVOLVEMENT\_EPISODE\_START | PROJ\_INVOLVEMENT\_EPISODE\_END |  DURATION\_OF\_STAY| HUD\_PROJECT\_TYPE  |
+|----------:|--------------------------------:|-------------------------------:|:----------------------------------|:--------------------------------|-------------------:|:--------------------|
+|  1.000e+09|                            20863|                           20863| 2/9/2015                          | 2/9/2105                        |               32872| CYF Rental Assist   |
+|  1.000e+09|                            36843|                           36843| 10/24/2016                        | 11/29/2016                      |                  36| Emergency Shelter   |
+|  1.000e+09|                            37172|                           37172| 11/8/2016                         | 11/8/2016                       |                   1| Services Only (SSO) |
+|  1.001e+09|                            37145|                           37145| 11/8/2016                         | 11/8/2016                       |                   1| CYF Rental Assist   |
+|  1.000e+09|                            37103|                           37103| 11/7/2016                         | 11/7/2016                       |                   1| CYF Rental Assist   |
+|  1.000e+09|                            37104|                           37104| 11/7/2016                         | 11/7/2016                       |                   1| CYF Rental Assist   |
 
 #### Single Individual
 
@@ -305,10 +312,10 @@ shelters %>%
     kable
 ```
 
-|         mci|  FIRST\_INVOLVEMENT\_IN\_EPISODE|  LAST\_INVOLVEMENT\_IN\_EPISODE| PROJ\_INVOLVEMENT\_EPISODE\_START | PROJ\_INVOLVEMENT\_EPISODE\_END |  DURATION\_OF\_STAY| HUD\_PROJECT\_TYPE |
-|-----------:|--------------------------------:|-------------------------------:|:----------------------------------|:--------------------------------|-------------------:|:-------------------|
-|  1000048110|                            24829|                           24829| 8/14/2015                         | 8/14/2015                       |                   1| Emergency Shelter  |
-|  1000048110|                            19860|                           19860| 1/6/2015                          | 1/6/2015                        |                   1| Emergency Shelter  |
+|    mci|  FIRST\_INVOLVEMENT\_IN\_EPISODE|  LAST\_INVOLVEMENT\_IN\_EPISODE| PROJ\_INVOLVEMENT\_EPISODE\_START | PROJ\_INVOLVEMENT\_EPISODE\_END |  DURATION\_OF\_STAY| HUD\_PROJECT\_TYPE |
+|------:|--------------------------------:|-------------------------------:|:----------------------------------|:--------------------------------|-------------------:|:-------------------|
+|  1e+09|                            24829|                           24829| 8/14/2015                         | 8/14/2015                       |                   1| Emergency Shelter  |
+|  1e+09|                            19860|                           19860| 1/6/2015                          | 1/6/2015                        |                   1| Emergency Shelter  |
 
 ### CYF
 
@@ -334,14 +341,14 @@ hist(table(cyf$mci), main='Number of homeless shelter entries per individual')
 kable(head(cyf))
 ```
 
-|  CAS\_ID|  CL\_ID|         mci| BRTH\_DT   |  AGE| GENDER | RACE                      | INVLV\_STRT\_DT | INVLV\_END\_DT |
-|--------:|-------:|-----------:|:-----------|----:|:-------|:--------------------------|:----------------|:---------------|
-|    40355|  834793|  1000430388| 12/3/1970  |   45| Female | Black or African American | 1/6/1986        | NA             |
-|    40415|  835594|  1000441973| 1/26/1970  |   46| Female | Declined to Answer        | 2/3/1991        | 3/18/2014      |
-|    40520|  836934|  1000261419| 12/6/1993  |   22| Female | White                     | 12/24/1991      | 1/7/2015       |
-|    40153|  832003|  1000133126| 12/15/1991 |   24| Female | Unable to Determine       | 3/29/1993       | NA             |
-|    47691|  914252|  1000340271| 9/16/1970  |   46| Female | Black or African American | 4/26/1993       | 11/7/2013      |
-|    40090|  831135|  1000340915| 10/12/1992 |   24| Male   | Black or African American | 4/29/1994       | 2/20/2013      |
+|  CAS\_ID|  CL\_ID|    mci| BRTH\_DT   |  AGE| GENDER | RACE                      | INVLV\_STRT\_DT | INVLV\_END\_DT |
+|--------:|-------:|------:|:-----------|----:|:-------|:--------------------------|:----------------|:---------------|
+|    40355|  834793|  1e+09| 12/3/1970  |   45| Female | Black or African American | 1/6/1986        | NA             |
+|    40415|  835594|  1e+09| 1/26/1970  |   46| Female | Declined to Answer        | 2/3/1991        | 3/18/2014      |
+|    40520|  836934|  1e+09| 12/6/1993  |   22| Female | White                     | 12/24/1991      | 1/7/2015       |
+|    40153|  832003|  1e+09| 12/15/1991 |   24| Female | Unable to Determine       | 3/29/1993       | NA             |
+|    47691|  914252|  1e+09| 9/16/1970  |   46| Female | Black or African American | 4/26/1993       | 11/7/2013      |
+|    40090|  831135|  1e+09| 10/12/1992 |   24| Male   | Black or African American | 4/29/1994       | 2/20/2013      |
 
 #### Single Individual
 
@@ -351,11 +358,74 @@ cyf %>%
     kable
 ```
 
-|  CAS\_ID|  CL\_ID|         mci| BRTH\_DT |  AGE| GENDER | RACE  | INVLV\_STRT\_DT | INVLV\_END\_DT |
-|--------:|-------:|-----------:|:---------|----:|:-------|:------|:----------------|:---------------|
-|    44331|  875536|  1000048110| 8/6/1995 |   21| Female | White | 9/4/2009        | NA             |
-|    44295|  875536|  1000048110| 8/6/1995 |   21| Female | White | 4/7/2014        | 1/26/2015      |
-|    70646|  875536|  1000048110| 8/6/1995 |   21| Female | White | 5/5/2015        | NA             |
+|  CAS\_ID|  CL\_ID|    mci| BRTH\_DT |  AGE| GENDER | RACE  | INVLV\_STRT\_DT | INVLV\_END\_DT |
+|--------:|-------:|------:|:---------|----:|:-------|:------|:----------------|:---------------|
+|    44331|  875536|  1e+09| 8/6/1995 |   21| Female | White | 9/4/2009        | NA             |
+|    44295|  875536|  1e+09| 8/6/1995 |   21| Female | White | 4/7/2014        | 1/26/2015      |
+|    70646|  875536|  1e+09| 8/6/1995 |   21| Female | White | 5/5/2015        | NA             |
+
+Combine Datasets
+================
+
+``` r
+# Behavior and health services
+bhs_collapsed <- bhs %>%
+    group_by(mci) %>%
+    summarize(num_visits=n(),
+              num_unique_providers=n_distinct(PRVDR_NAME),
+              #county_tot=sum(CNTY_TOT),
+              total_units=sum(TOT_UNITS))
+
+# drop INVLV and birthdate columns
+cyf_collapsed <- cyf %>% 
+    select(-BRTH_DT, -starts_with('INVLV'))
+
+# Just keep one row for each individual
+cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
+
+# Shelters
+shelters_collapsed <- shelters %>%
+    group_by(mci) %>%
+    summarize(num_shelter_stays=n(),
+              num_unique_hud_proj_types=n_distinct(HUD_PROJECT_TYPE),
+              min_stay=min(DURATION_OF_STAY),
+              avg_stay=median(DURATION_OF_STAY),
+              max_stay=max(DURATION_OF_STAY))
+
+# Combined dataset
+dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'), 
+             shelters_collapsed, by='mci')
+
+# Drop the two rows with NA's
+dat <- dat[complete.cases(dat),]
+```
+
+Variable correlation heatmap
+
+``` r
+# version of data with categorical variabled numerically encoded
+dat_numeric <- dat
+dat_numeric$RACE <- as.numeric(factor(dat$RACE))
+dat_numeric$GENDER <- as.numeric(factor(dat$GENDER))
+
+# drop id column
+dat_numeric <- dat_numeric[,2:ncol(dat_numeric)]
+dat_numeric <- as.matrix(dat_numeric)
+
+cor_mat <- cor(dat_numeric, method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis)
+```
+
+![](README_files/figure-markdown_github/variable_heatmap-1.png)
+
+Individual correlation heatmap
+
+``` r
+cor_mat <- cor(t(dat_numeric), method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis)
+```
+
+![](README_files/figure-markdown_github/individual_heatmap-1.png)
 
 System Info
 ===========
@@ -382,7 +452,7 @@ sessionInfo()
     ## other attached packages:
     ##  [1] venneuler_1.1-0 rJava_0.9-8     knitr_1.15.1    gplots_3.0.1   
     ##  [5] ggplot2_2.2.0   dplyr_0.5.0     readr_1.0.0     rmarkdown_1.2  
-    ##  [9] nvimcom_0.9-25  colorout_1.1-0 
+    ##  [9] viridis_0.3.4   nvimcom_0.9-25  colorout_1.1-0 
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] Rcpp_0.12.8         magrittr_1.5        munsell_0.4.3      
@@ -391,7 +461,7 @@ sessionInfo()
     ## [10] tools_3.3.2         grid_3.3.2          gtable_0.2.0       
     ## [13] KernSmooth_2.23-15  DBI_0.5-1           gtools_3.5.0       
     ## [16] htmltools_0.3.5     yaml_2.1.14         lazyeval_0.2.0.9000
-    ## [19] assertthat_0.1      rprojroot_1.1       digest_0.6.10      
-    ## [22] tibble_1.2          bitops_1.0-6        evaluate_0.10      
-    ## [25] gdata_2.17.0        stringi_1.1.2       scales_0.4.1       
-    ## [28] backports_1.0.4
+    ## [19] assertthat_0.1      digest_0.6.10       rprojroot_1.1      
+    ## [22] tibble_1.2          gridExtra_2.2.1     bitops_1.0-6       
+    ## [25] evaluate_0.10       gdata_2.17.0        stringi_1.1.2      
+    ## [28] scales_0.4.1        backports_1.0.4

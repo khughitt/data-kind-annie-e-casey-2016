@@ -41,6 +41,13 @@ library('ggplot2')
 library('gplots')
 library('knitr')
 library('venneuler')
+library('viridis')
+
+opts_chunk$set(fig.width=1080/96,
+               fig.height=1080/96,
+               dpi=96)
+options(digits=4)
+options(stringsAsFactors=FALSE)
 ```
 
 ```{r}
@@ -182,6 +189,65 @@ kable(head(cyf))
 cyf %>% 
     filter(mci == example_youth) %>% 
     kable
+```
+
+Combine Datasets
+================
+
+```{r}
+# Behavior and health services
+bhs_collapsed <- bhs %>%
+    group_by(mci) %>%
+    summarize(num_visits=n(),
+              num_unique_providers=n_distinct(PRVDR_NAME),
+              #county_tot=sum(CNTY_TOT),
+              total_units=sum(TOT_UNITS))
+
+# drop INVLV and birthdate columns
+cyf_collapsed <- cyf %>% 
+    select(-BRTH_DT, -starts_with('INVLV'))
+
+# Just keep one row for each individual
+cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
+
+# Shelters
+shelters_collapsed <- shelters %>%
+    group_by(mci) %>%
+    summarize(num_shelter_stays=n(),
+              num_unique_hud_proj_types=n_distinct(HUD_PROJECT_TYPE),
+              min_stay=min(DURATION_OF_STAY),
+              avg_stay=median(DURATION_OF_STAY),
+              max_stay=max(DURATION_OF_STAY))
+
+# Combined dataset
+dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'), 
+             shelters_collapsed, by='mci')
+
+# Drop the two rows with NA's
+dat <- dat[complete.cases(dat),]
+```
+
+Variable correlation heatmap
+
+```{r, variable_heatmap}
+# version of data with categorical variabled numerically encoded
+dat_numeric <- dat
+dat_numeric$RACE <- as.numeric(factor(dat$RACE))
+dat_numeric$GENDER <- as.numeric(factor(dat$GENDER))
+
+# drop id column
+dat_numeric <- dat_numeric[,2:ncol(dat_numeric)]
+dat_numeric <- as.matrix(dat_numeric)
+
+cor_mat <- cor(dat_numeric, method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis)
+```
+
+Individual correlation heatmap
+
+```{r, individual_heatmap}
+cor_mat <- cor(t(dat_numeric), method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis)
 ```
 
 System Info
