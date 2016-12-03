@@ -378,7 +378,7 @@ bhs_collapsed <- bhs %>%
 
 # drop INVLV and birthdate columns
 cyf_collapsed <- cyf %>% 
-    select(-BRTH_DT, -starts_with('INVLV'))
+    select(-CAS_ID, -CL_ID, -BRTH_DT, -starts_with('INVLV'))
 
 # Just keep one row for each individual
 cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
@@ -450,9 +450,9 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] venneuler_1.1-0 rJava_0.9-8     knitr_1.15.1    gplots_3.0.1   
-    ##  [5] ggplot2_2.2.0   dplyr_0.5.0     readr_1.0.0     rmarkdown_1.2  
-    ##  [9] viridis_0.3.4   nvimcom_0.9-25  colorout_1.1-0 
+    ##  [1] viridis_0.3.4   venneuler_1.1-0 rJava_0.9-8     knitr_1.15.1   
+    ##  [5] gplots_3.0.1    ggplot2_2.2.0   dplyr_0.5.0     readr_1.0.0    
+    ##  [9] rmarkdown_1.2   nvimcom_0.9-25  colorout_1.1-0 
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] Rcpp_0.12.8         magrittr_1.5        munsell_0.4.3      
@@ -461,7 +461,7 @@ sessionInfo()
     ## [10] tools_3.3.2         grid_3.3.2          gtable_0.2.0       
     ## [13] KernSmooth_2.23-15  DBI_0.5-1           gtools_3.5.0       
     ## [16] htmltools_0.3.5     yaml_2.1.14         lazyeval_0.2.0.9000
-    ## [19] assertthat_0.1      digest_0.6.10       rprojroot_1.1      
+    ## [19] assertthat_0.1      rprojroot_1.1       digest_0.6.10      
     ## [22] tibble_1.2          gridExtra_2.2.1     bitops_1.0-6       
     ## [25] evaluate_0.10       gdata_2.17.0        stringi_1.1.2      
     ## [28] scales_0.4.1        backports_1.0.4

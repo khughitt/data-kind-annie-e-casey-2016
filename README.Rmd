@@ -205,7 +205,7 @@ bhs_collapsed <- bhs %>%
 
 # drop INVLV and birthdate columns
 cyf_collapsed <- cyf %>% 
-    select(-BRTH_DT, -starts_with('INVLV'))
+    select(-CAS_ID, -CL_ID, -BRTH_DT, -starts_with('INVLV'))
 
 # Just keep one row for each individual
 cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
