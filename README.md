@@ -31,6 +31,7 @@ library('dplyr')
 library('ggplot2')
 library('gplots')
 library('knitr')
+library('venneuler')
 ```
 
 ``` r
@@ -108,6 +109,51 @@ cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE)
 # Individuals in all three datasets
 common_ids <- intersect(intersect(bhs$mci, cyf$mci), shelters$mci)
 
+# Venn Diagram
+bhs_ids <- unique(bhs$mci)
+cyf_ids <- unique(cyf$mci)
+shelt_ids <- unique(shelters$mci)
+
+vd <- venneuler(c(bhs=length(bhs_ids), cyf=length(cyf_ids),
+                  shelt=length(shelt_ids),
+                  "bhs&cyf"=length(intersect(bhs_ids, cyf_ids)),
+                  "bhs&shelt"=length(intersect(bhs_ids, shelt_ids)),
+                  "cyf&shelt"=length(intersect(cyf_ids, shelt_ids)),
+                  "bhs&cyf&shelt"=length(intersect(bhs_ids, intersect(cyf_ids, shelt_ids)))))
+vd$labels <- c(paste0("bhs\n", length(bhs_ids)),
+               paste0("cyf\n", length(cyf_ids)),
+               paste0("shelt\n", length(shelt_ids)))
+plot(vd)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-2-1.png)
+
+``` r
+# Overlap statistics
+cat(sprintf('- Overlap between BHS & CYF: %d\n', length(intersect(bhs_ids, cyf_ids))))
+```
+
+-   Overlap between BHS & CYF: 10627
+
+``` r
+cat(sprintf('- Overlap between BHS & Shelter: %d\n', length(intersect(bhs_ids, shelt_ids))))
+```
+
+-   Overlap between BHS & Shelter: 1910
+
+``` r
+cat(sprintf('- Overlap between CYF & Shelter: %d\n', length(intersect(cyf_ids, shelt_ids))))
+```
+
+-   Overlap between CYF & Shelter: 4312
+
+``` r
+cat(sprintf('- Overlap between all three: %d\n', length(intersect(bhs_ids, intersect(cyf_ids, shelt_ids)))))
+```
+
+-   Overlap between all three: 1704
+
+``` r
 # Drop rows for individuals with missing data
 cat(sprintf('- Dropping %d / %d rows from shelter dataset (not shared)\n', 
             sum(!shelters$mci %in% common_ids),
@@ -298,19 +344,20 @@ sessionInfo()
     ## Running under: Arch Linux
     ## 
     ## locale:
-    ##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
-    ##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
-    ##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
-    ##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
-    ##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-    ## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+    ##  [1] LC_CTYPE=en_US.UTF-8          LC_NUMERIC=C                 
+    ##  [3] LC_TIME=en_US.UTF-8           LC_COLLATE=en_US.UTF-8       
+    ##  [5] LC_MONETARY=en_US.UTF-8       LC_MESSAGES=en_US.UTF-8      
+    ##  [7] LC_PAPER=en_US.UTF-8          LC_NAME=en_US.UTF-8          
+    ##  [9] LC_ADDRESS=en_US.UTF-8        LC_TELEPHONE=en_US.UTF-8     
+    ## [11] LC_MEASUREMENT=en_US.UTF-8    LC_IDENTIFICATION=en_US.UTF-8
     ## 
     ## attached base packages:
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] knitr_1.15.1   gplots_3.0.1   ggplot2_2.2.0  dplyr_0.5.0   
-    ## [5] readr_1.0.0    rmarkdown_1.2  nvimcom_0.9-25 colorout_1.1-0
+    ##  [1] venneuler_1.1-0 rJava_0.9-8     knitr_1.15.1    gplots_3.0.1   
+    ##  [5] ggplot2_2.2.0   dplyr_0.5.0     readr_1.0.0     rmarkdown_1.2  
+    ##  [9] nvimcom_0.9-25  colorout_1.1-0 
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] Rcpp_0.12.8         magrittr_1.5        munsell_0.4.3      

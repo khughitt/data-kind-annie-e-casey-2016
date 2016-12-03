@@ -62,8 +62,26 @@ cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE)
 common_ids <- intersect(intersect(bhs$mci, cyf$mci), shelters$mci)
 
 # Venn Diagram
-bhs_ids <- unique(bhs$
-vd <- venneuler(c(bhs=0.3, B=0.3, C=1.1, "A&B"=0.1, "A&C"=0.2, "B&C"=0.1 ,"A&B&C"=0.1))
+bhs_ids <- unique(bhs$mci)
+cyf_ids <- unique(cyf$mci)
+shelt_ids <- unique(shelters$mci)
+
+vd <- venneuler(c(bhs=length(bhs_ids), cyf=length(cyf_ids),
+                  shelt=length(shelt_ids),
+                  "bhs&cyf"=length(intersect(bhs_ids, cyf_ids)),
+                  "bhs&shelt"=length(intersect(bhs_ids, shelt_ids)),
+                  "cyf&shelt"=length(intersect(cyf_ids, shelt_ids)),
+                  "bhs&cyf&shelt"=length(intersect(bhs_ids, intersect(cyf_ids, shelt_ids)))))
+vd$labels <- c(paste0("bhs\n", length(bhs_ids)),
+               paste0("cyf\n", length(cyf_ids)),
+               paste0("shelt\n", length(shelt_ids)))
+plot(vd)
+
+# Overlap statistics
+cat(sprintf('- Overlap between BHS & CYF: %d\n', length(intersect(bhs_ids, cyf_ids))))
+cat(sprintf('- Overlap between BHS & Shelter: %d\n', length(intersect(bhs_ids, shelt_ids))))
+cat(sprintf('- Overlap between CYF & Shelter: %d\n', length(intersect(cyf_ids, shelt_ids))))
+cat(sprintf('- Overlap between all three: %d\n', length(intersect(bhs_ids, intersect(cyf_ids, shelt_ids)))))
 
 # Drop rows for individuals with missing data
 cat(sprintf('- Dropping %d / %d rows from shelter dataset (not shared)\n', 
