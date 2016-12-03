@@ -8,6 +8,7 @@
     -   [Preview of data for a single individual](#preview-of-data-for-a-single-individual)
 -   [Results](#results)
     -   [BHS, CYF, and Shelters](#bhs-cyf-and-shelters)
+    -   [Shelters, CYF](#shelters-cyf)
     -   [BHS, CYF](#bhs-cyf)
 -   [System Info](#system-info)
 
@@ -48,51 +49,13 @@ Load data
 ``` r
 library('readr')
 library('dplyr')
-```
-
-    ## 
-    ## Attaching package: 'dplyr'
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     filter, lag
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
-
-``` r
 library('ggplot2')
 library('gplots')
-```
-
-    ## 
-    ## Attaching package: 'gplots'
-
-    ## The following object is masked from 'package:stats':
-    ## 
-    ##     lowess
-
-``` r
 library('knitr')
 library('venneuler')
-```
-
-    ## Loading required package: rJava
-
-``` r
 library('viridis')
 library('GGally')
-```
 
-    ## 
-    ## Attaching package: 'GGally'
-
-    ## The following object is masked from 'package:dplyr':
-    ## 
-    ##     nasa
-
-``` r
 set.seed(1)
 
 opts_chunk$set(fig.width=1080/96,
@@ -101,6 +64,9 @@ opts_chunk$set(fig.width=1080/96,
 options(digits=4)
 options(stringsAsFactors=FALSE)
 options(knitr.duplicate.label='allow')
+
+# version
+analysis_version <- 'v1.2'
 ```
 
 ``` r
@@ -363,7 +329,6 @@ BHS, CYF, and Shelters
 ``` r
 ids_to_use <- common_ids
 analysis_name <- 'combined'
-analysis_version <- 'v1.1'
 
 datasets <- c('bhs', 'cyf', 'shelters')
 ```
@@ -547,7 +512,200 @@ ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
+
+Save combined table...
+
+``` r
+write.csv(dat, file=sprintf('../data/combined/%s_%s.csv', analysis_name, analysis_version))
+```
+
+Shelters, CYF
+-------------
+
+``` r
+ids_to_use <- cyf_shelters
+analysis_name <- 'cyf_shelters'
+
+datasets <- c('shelters', 'cyf')
+```
+
+### Subset data
+
+``` r
+# Drop rows for individuals with missing data
+cat(sprintf('- Dropping %d / %d rows from shelter dataset (not shared)\n', 
+            sum(!shelters$mci %in% ids_to_use),
+            nrow(shelters)))
+```
+
+    ## - Dropping 23729 / 30305 rows from shelter dataset (not shared)
+
+``` r
+shelters_subset <- shelters[shelters$mci %in% ids_to_use,]
+
+cat(sprintf('- Dropping %d / %d rows from behavior dataset (not shared)\n', 
+            sum(!bhs$mci %in% ids_to_use),
+            nrow(bhs)))
+```
+
+    ## - Dropping 807675 / 1003167 rows from behavior dataset (not shared)
+
+``` r
+bhs_subset <- bhs[bhs$mci %in% ids_to_use,]
+
+cat(sprintf('- Dropping %d / %d rows from CYF dataset (not shared)\n', 
+            sum(!cyf$mci %in% ids_to_use),
+            nrow(cyf)))
+```
+
+    ## - Dropping 62043 / 66790 rows from CYF dataset (not shared)
+
+``` r
+cyf_subset <- cyf[cyf$mci %in% ids_to_use,]
+```
+
+### Visualization
+
+``` r
+# Behavior and health services
+bhs_collapsed <- bhs_subset %>%
+    group_by(mci) %>%
+    summarize(bhs_num_visits=n(),
+              bhs_num_unique_providers=n_distinct(PRVDR_NAME))
+              #county_tot=sum(CNTY_TOT),
+              #total_units=sum(TOT_UNITS))
+
+# drop INVLV and birthdate columns and keep a single row for each individual
+# TODO: add duration in CYF?
+cyf_collapsed <- cyf_subset %>% 
+    group_by(mci) %>%
+    mutate(cyf_num_welfare=n()) %>%
+    select(-CAS_ID, -CL_ID, -BRTH_DT, -starts_with('INVLV'))
+cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
+
+# Shelters
+#min_stay=min(DURATION_OF_STAY),
+#max_stay=max(DURATION_OF_STAY),
+shelters_collapsed <- shelters_subset %>%
+    group_by(mci) %>%
+    summarize(shelter_num_stays=n(),
+              shelter_num_unique_hud_types=n_distinct(HUD_PROJECT_TYPE),
+              shelter_avg_stay=median(DURATION_OF_STAY))
+
+# Combined dataset
+dataset_list <- lapply(paste0(datasets, '_collapsed'), get)
+names(dataset_list) <- datasets
+
+dat <- Reduce(function(x, y) merge(x, y, by='mci'), dataset_list)
+
+# Drop any rows with NA's (should be small)
+cat(sprintf('- Removing %d incomplete rows...\n', sum(!complete.cases(dat))))
+```
+
+    ## - Removing 4 incomplete rows...
+
+``` r
+dat <- dat[complete.cases(dat),]
+
+# Remove entries with values outside of the expected range
+if ('shelters' %in% datasets) {
+    dat <- dat %>% filter(shelter_avg_stay < 5000)
+}
+if ('bhs' %in% datasets) {
+    dat <- dat %>% filter(bhs_num_visits < 1000)
+}
+if ('cyf' %in% datasets) {
+    dat <- dat %>% filter(AGE < 75)
+}
+
+# version of data with only numeric variables, and without the ID column
+mat <- as.matrix(dat[,!colnames(dat) %in% c('mci', 'RACE', 'GENDER')])
+
+# Normalize columns
+mat <- scale(mat)
+```
+
+Variable correlation heatmap
+
+``` r
+# spearman correlation matrix
+cor_mat <- cor(mat, method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis, cellnote=round(cor_mat, 3), margin=c(16,16))
+```
+
+![](README_files/figure-markdown_github/variable_heatmap-17-1.png)
+
+Individual correlation heatmap
+
+``` r
+# drop any constant rows
+zero_var <- apply(mat, 1, var) == 0
+mat <- mat[!zero_var,]
+dat <- dat[!zero_var,]
+
+# individual heatmap (subsample if > 1000)
+if (nrow(mat) > 1000) {
+    ind <- sample(1:nrow(mat), 1000)
+    cor_mat <- cor(t(mat[ind,]), method='spearman')
+} else {
+    cor_mat <- cor(t(mat), method='spearman')
+}
+heatmap.2(cor_mat, trace='none', col=viridis)
+```
+
+![](README_files/figure-markdown_github/individual_heatmap-18-1.png)
+
+PCA of individuals
+
+``` r
+prcomp_results <- prcomp(mat)
+var_explained <- round(summary(prcomp_results)$importance[2,] * 100, 2)
+
+xl <- sprintf("PC1 (%.2f%% variance)", var_explained[1])
+yl <- sprintf("PC2 (%.2f%% variance)", var_explained[2])
+
+# Dataframe for PCA plot
+df <- data.frame(id=dat[,'mci'],
+                 pc1=prcomp_results$x[,1], 
+                 pc2=prcomp_results$x[,2],
+                 gender=dat[,'GENDER'],
+                 race=dat[,'RACE'])
+# PCA plot
+plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
+    geom_point(stat="identity",size=3.5) +
+    #geom_text(aes(label=id), angle=45, size=4, vjust=2) +
+    xlab(xl) + ylab(yl) +
+    ggtitle(sprintf("PCA: Individuals")) +
+    theme(axis.ticks=element_blank(), axis.text.x=element_text(angle=-90))
+plot(plt)
+```
+
+![](README_files/figure-markdown_github/individual_pca-19-1.png)
+
+### Other visualizations
+
+``` r
+# is there a relationship between race and variables? (just considered dominant
+# categories)
+dat_subset <- dat %>% 
+    filter(RACE %in% c('White', 'Black or African American')) %>%
+    select(-mci)
+ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+![](README_files/figure-markdown_github/unnamed-chunk-20-1.png)
 
 Save combined table...
 
@@ -561,7 +719,6 @@ BHS, CYF
 ``` r
 ids_to_use <- bhs_cyf
 analysis_name <- 'bhs_cyf'
-analysis_version <- 'v1.1'
 
 datasets <- c('bhs', 'cyf')
 ```
@@ -670,7 +827,7 @@ cor_mat <- cor(mat, method='spearman')
 heatmap.2(cor_mat, trace='none', col=viridis, cellnote=round(cor_mat, 3), margin=c(16,16))
 ```
 
-![](README_files/figure-markdown_github/variable_heatmap-15-1.png)
+![](README_files/figure-markdown_github/variable_heatmap-24-1.png)
 
 Individual correlation heatmap
 
@@ -690,7 +847,7 @@ if (nrow(mat) > 1000) {
 heatmap.2(cor_mat, trace='none', col=viridis)
 ```
 
-![](README_files/figure-markdown_github/individual_heatmap-16-1.png)
+![](README_files/figure-markdown_github/individual_heatmap-25-1.png)
 
 PCA of individuals
 
@@ -717,7 +874,7 @@ plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
 plot(plt)
 ```
 
-![](README_files/figure-markdown_github/individual_pca-17-1.png)
+![](README_files/figure-markdown_github/individual_pca-26-1.png)
 
 ### Other visualizations
 
@@ -739,7 +896,7 @@ ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
-![](README_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-27-1.png)
 
 Save combined table...
 

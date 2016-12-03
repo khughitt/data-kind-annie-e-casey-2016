@@ -67,6 +67,9 @@ opts_chunk$set(fig.width=1080/96,
 options(digits=4)
 options(stringsAsFactors=FALSE)
 options(knitr.duplicate.label='allow')
+
+# version
+analysis_version <- 'v1.2'
 ```
 
 ```{r}
@@ -207,9 +210,21 @@ BHS, CYF, and Shelters
 ```{r}
 ids_to_use <- common_ids
 analysis_name <- 'combined'
-analysis_version <- 'v1.1'
 
 datasets <- c('bhs', 'cyf', 'shelters')
+```
+
+```{r child='src/results.Rmd'}
+```
+
+Shelters, CYF
+-------------
+
+```{r}
+ids_to_use <- cyf_shelters
+analysis_name <- 'cyf_shelters'
+
+datasets <- c('shelters', 'cyf')
 ```
 
 ```{r child='src/results.Rmd'}
@@ -221,7 +236,6 @@ BHS, CYF
 ```{r}
 ids_to_use <- bhs_cyf
 analysis_name <- 'bhs_cyf'
-analysis_version <- 'v1.1'
 
 datasets <- c('bhs', 'cyf')
 ```
