@@ -1,0 +1,120 @@
+### Subset data
+
+```{r subset_data}
+# Drop rows for individuals with missing data
+cat(sprintf('- Dropping %d / %d rows from shelter dataset (not shared)\n', 
+            sum(!shelters$mci %in% ids_to_use),
+            nrow(shelters)))
+shelters_subset <- shelters[shelters$mci %in% ids_to_use,]
+
+cat(sprintf('- Dropping %d / %d rows from behavior dataset (not shared)\n', 
+            sum(!bhs$mci %in% ids_to_use),
+            nrow(bhs)))
+bhs_subset <- bhs[bhs$mci %in% ids_to_use,]
+
+cat(sprintf('- Dropping %d / %d rows from CYF dataset (not shared)\n', 
+            sum(!cyf$mci %in% ids_to_use),
+            nrow(cyf)))
+cyf_subset <- cyf[cyf$mci %in% ids_to_use,]
+```
+
+### Visualization
+
+```{r}
+# Behavior and health services
+bhs_collapsed <- bhs_subset %>%
+    group_by(mci) %>%
+    summarize(bhs_num_visits=n(),
+              bhs_num_unique_providers=n_distinct(PRVDR_NAME))
+              #county_tot=sum(CNTY_TOT),
+              #total_units=sum(TOT_UNITS))
+
+# drop INVLV and birthdate columns and keep a single row for each individual
+# TODO: add duration in CYF?
+cyf_collapsed <- cyf_subset %>% 
+    select(-CAS_ID, -CL_ID, -BRTH_DT, -starts_with('INVLV'))
+cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
+
+# Shelters
+#min_stay=min(DURATION_OF_STAY),
+#max_stay=max(DURATION_OF_STAY),
+shelters_collapsed <- shelters_subset %>%
+    group_by(mci) %>%
+    summarize(shelter_num_stays=n(),
+              shelter_num_unique_hud_types=n_distinct(HUD_PROJECT_TYPE),
+              shelter_avg_stay=median(DURATION_OF_STAY))
+
+# Combined dataset
+dataset_list <- lapply(paste0(datasets, '_collapsed'), get)
+names(dataset_list) <- datasets
+
+dat <- Reduce(function(x, y) merge(x, y, by='mci'), dataset_list)
+
+# Drop any rows with NA's (should be small)
+cat(sprintf('- Removing %d incomplete rows...\n', sum(!complete.cases(dat))))
+dat <- dat[complete.cases(dat),]
+
+# Remove entries with values outside of the expected range
+if ('shelters' %in% datasets) {
+    dat <- dat %>% filter(shelter_avg_stay < 5000)
+}
+
+# Drop outliers detected in PCA plot
+# 100050347 - min_stay = 730488
+# 100308371 - total_units 23,468
+# 1000049489 - min_stay 32,872
+#dat <- dat[!dat$mci %in% c(1000050347, 1000308371, 1000049489, 1000288792),]
+```
+
+Variable correlation heatmap
+
+```{r, variable_heatmap}
+# version of data with categorical variabled numerically encoded
+dat_numeric <- dat
+dat_numeric$RACE <- as.numeric(factor(dat$RACE))
+dat_numeric$GENDER <- as.numeric(factor(dat$GENDER))
+
+# drop id column
+dat_numeric <- dat_numeric[,2:ncol(dat_numeric)]
+dat_numeric <- as.matrix(dat_numeric)
+
+cor_mat <- cor(dat_numeric, method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis, margin=c(16,16))
+```
+
+Individual correlation heatmap
+
+```{r, individual_heatmap}
+cor_mat <- cor(t(dat_numeric), method='spearman')
+heatmap.2(cor_mat, trace='none', col=viridis)
+```
+
+PCA of individuals
+
+```{r, individual_pca}
+prcomp_results <- prcomp(dat_numeric)
+var_explained <- round(summary(prcomp_results)$importance[2,] * 100, 2)
+
+xl <- sprintf("PC1 (%.2f%% variance)", var_explained[1])
+yl <- sprintf("PC2 (%.2f%% variance)", var_explained[2])
+
+# Dataframe for PCA plot
+df <- data.frame(id=dat[,'mci'],
+                 pc1=prcomp_results$x[,1], 
+                 pc2=prcomp_results$x[,2],
+                 gender=dat[,'GENDER'],
+                 race=dat[,'RACE'])
+# PCA plot
+plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
+    geom_point(stat="identity",size=5) +
+    geom_text(aes(label=id), angle=45, size=4, vjust=2) +
+    xlab(xl) + ylab(yl) +
+    ggtitle(sprintf("PCA: Individuals")) +
+    theme(axis.ticks=element_blank(), axis.text.x=element_text(angle=-90))
+plot(plt)
+```
+
+```{r}
+write.csv(dat, file=sprintf('data/combined/%s_%s.csv', analysis_name,
+                            analysis_version)
+```

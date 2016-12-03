@@ -4,35 +4,50 @@ author: V. Keith Hughitt
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   md_document:
+    toc: true
+    toc_depth: 2
     variant: markdown_github
 ---
 
-Overview
-========
+Introduction
+============
 
-...
+Overview
+--------
+
+From the project brief, the main goal for the project is to:
+
+>  Demonstrate the benefits of using an Integrated Data System for Child,
+>  Youth, and Family (CYF) services by describing the populations of children
+>  and youth who have received services from the Behavioral Health and
+>  Homelessness programs. Produce population profiles of users of each service
+>  and users of both services and make relevant comparisons to the general
+>  population of children and youth. Describe the groups of individuals who
+>  reappear between and within the same services.
 
 Data
 ----
 
-### Allegheny County Aggregate Data.xlsx
+Datasets currently being used in this analysis:
 
-### Behavioral Health Services.csv
+- Behavioral Health Services.csv
+- CYF Active 2010 to 2016-11-09.csv
+- HomelessShelters.csv
 
-### CYF Active 2010 to 2016-11-09.csv
+Other datasets and tables available:
 
-### HomelessShelters(1).csv
-
-### IDS Variables.xlsx
-
-### PGHSNAP - Neighborhoods_ All Raw Data.xlsx
-
-### rp_placements_clean.csv
+- Allegheny County Aggregate Data.xlsx
+- IDS Variables.xlsx
+- PGHSNAP - Neighborhoods_ All Raw Data.xlsx
+- rp_placements_clean.csv
 
 Note: some of the files ending with "(1).csv" have been renamed to ".csv".
 
 Data Preparation
 ================
+
+Load data
+---------
 
 ```{r load_libraries}
 library('readr')
@@ -48,6 +63,7 @@ opts_chunk$set(fig.width=1080/96,
                dpi=96)
 options(digits=4)
 options(stringsAsFactors=FALSE)
+options(knitr.duplicate.label='allow')
 ```
 
 ```{r}
@@ -68,9 +84,21 @@ cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE)
     rename(mci=MCI_ID)
 ```
 
-```{r results='asis'}
+Summary of data overlap
+-----------------------
+
+```{r dataset_overlap, results='asis'}
 # Individuals in all three datasets
 common_ids <- intersect(intersect(bhs$mci, cyf$mci), shelters$mci)
+
+# Individuals in both BHS and CYF datasets
+bhs_cyf  <- intersect(bhs$mci, cyf$mci)
+
+# Individuals in both BHS and Shelter datasets
+bhs_shelters  <- intersect(bhs$mci, shelters$mci)
+
+# Individuals in both CYF and Shelter datasets
+cyf_shelters  <- intersect(cyf$mci, shelters$mci)
 
 # Venn Diagram
 bhs_ids <- unique(bhs$mci)
@@ -79,40 +107,54 @@ shelt_ids <- unique(shelters$mci)
 
 vd <- venneuler(c(bhs=length(bhs_ids), cyf=length(cyf_ids),
                   shelt=length(shelt_ids),
-                  "bhs&cyf"=length(intersect(bhs_ids, cyf_ids)),
-                  "bhs&shelt"=length(intersect(bhs_ids, shelt_ids)),
-                  "cyf&shelt"=length(intersect(cyf_ids, shelt_ids)),
-                  "bhs&cyf&shelt"=length(intersect(bhs_ids, intersect(cyf_ids, shelt_ids)))))
+                  "bhs&cyf"=length(bhs_cyf),
+                  "bhs&shelt"=length(bhs_shelters),
+                  "cyf&shelt"=length(cyf_shelters),
+                  "bhs&cyf&shelt"=length(common_ids)))
 vd$labels <- c(paste0("bhs\n", length(bhs_ids)),
                paste0("cyf\n", length(cyf_ids)),
                paste0("shelt\n", length(shelt_ids)))
 plot(vd)
 
 # Overlap statistics
-cat(sprintf('- Overlap between BHS & CYF: %d\n', length(intersect(bhs_ids, cyf_ids))))
-cat(sprintf('- Overlap between BHS & Shelter: %d\n', length(intersect(bhs_ids, shelt_ids))))
-cat(sprintf('- Overlap between CYF & Shelter: %d\n', length(intersect(cyf_ids, shelt_ids))))
-cat(sprintf('- Overlap between all three: %d\n', length(intersect(bhs_ids, intersect(cyf_ids, shelt_ids)))))
+cat(sprintf('- Overlap between BHS & CYF: %d\n', length(bhs_cyf)))
+cat(sprintf('- Overlap between BHS & Shelter: %d\n', length(bhs_shelters)))
+cat(sprintf('- Overlap between CYF & Shelter: %d\n', length(cyf_shelters)))
+cat(sprintf('- Overlap between all three: %d\n', length(common_ids)))
+```
 
-# Drop rows for individuals with missing data
-cat(sprintf('- Dropping %d / %d rows from shelter dataset (not shared)\n', 
-            sum(!shelters$mci %in% common_ids),
-            nrow(shelters)))
-shelters <- shelters[shelters$mci %in% common_ids,]
+Data overview
+-------------
 
-cat(sprintf('- Dropping %d / %d rows from behavior dataset (not shared)\n', 
-            sum(!bhs$mci %in% common_ids),
-            nrow(bhs)))
-bhs <- bhs[bhs$mci %in% common_ids,]
+### Behavior and Health Services
 
-cat(sprintf('- Dropping %d / %d rows from CYF dataset (not shared)\n', 
-            sum(!cyf$mci %in% common_ids),
-            nrow(cyf)))
-cyf <- cyf[cyf$mci %in% common_ids,]
-# Placements
-#placements <- read_csv('data/raw/rp_placements_clean.csv', row_names=FALSE)
+```{r, bhs_hist}
+dim(bhs_subset)
+range(table(bhs_subset$mci))
+hist(table(bhs_subset$mci), main='Number of BHS entries per individual')
+```
 
-# counts per dataset
+### CYF
+
+```{r, cyf_hist}
+dim(cyf_subset)
+range(table(cyf_subset$mci))
+hist(table(cyf_subset$mci), main='Number of homeless shelter entries per individual')
+```
+
+### Homeless shelters
+
+```{r, shelters_hist}
+dim(shelters_subset)
+range(table(shelters_subset$mci))
+hist(table(shelters_subset$mci), main='Number of homeless shelter entries per individual')
+```
+
+Preview of data for a single individual
+---------------------------------------
+
+```{r results='asis'}
+# counts per dataset (shared across all three)
 data_counts <- merge(merge(
     bhs %>% group_by(mci) %>% summarize(num_bhs=n()),
     cyf %>% group_by(mci) %>% summarize(num_cyf=n()), by='mci'),
@@ -120,174 +162,66 @@ data_counts <- merge(merge(
 
 # individuals with multiple rows in all three tables
 multi_row_individuals <- data_counts[apply(data_counts, 1, min) > 1,]$mci
-```
 
-Exploratory Data Analaysis
-==========================
-
-### Behavior and Health Services
-
-#### Overview
-
-```{r, bhs_hist}
-dim(bhs)
-range(table(bhs$mci))
-hist(table(bhs$mci), main='Number of BHS entries per individual')
-```
-
-```{r, results='asis'}
-kable(head(bhs))
-```
-
-#### Single Individual
-
-```{r results='asis'}
 # random individual with multiple entries in each table
 example_youth <- multi_row_individuals[1]
+```
 
+### BHS
+
+```
 bhs %>% 
     filter(mci == example_youth) %>% 
     head(10) %>%
     kable
 ```
 
-### Homeless shelters
-
-```{r, shelters_hist}
-dim(shelters)
-range(table(shelters$mci))
-hist(table(shelters$mci), main='Number of homeless shelter entries per individual')
-```
-
-```{r, results='asis'}
-kable(head(shelters))
-```
-
-#### Single Individual
-
-```{r results='asis'}
-shelters %>% 
-    filter(mci == example_youth) %>% 
-    kable
-```
-
 ### CYF
 
-```{r, cyf_hist}
-dim(cyf)
-range(table(cyf$mci))
-hist(table(cyf$mci), main='Number of homeless shelter entries per individual')
-```
-
-```{r, results='asis'}
-kable(head(cyf))
-```
-
-#### Single Individual
-
 ```{r results='asis'}
-cyf %>% 
+cyf_subset %>% 
     filter(mci == example_youth) %>% 
     kable
 ```
 
-Combine Datasets
-================
+### Shelters
+
+```{r results='asis'}
+shelters_subset %>% 
+    filter(mci == example_youth) %>% 
+    kable
+```
+
+Results
+=======
+
+Below, we will explore some of the properties of intersections of two or three
+of the datasets.
+
+BHS, CYF, and Shelters
+----------------------
 
 ```{r}
-# Behavior and health services
-bhs_collapsed <- bhs %>%
-    group_by(mci) %>%
-    summarize(bhs_num_visits=n(),
-              bhs_num_unique_providers=n_distinct(PRVDR_NAME))
-              #county_tot=sum(CNTY_TOT),
-              #total_units=sum(TOT_UNITS))
-
-# drop INVLV and birthdate columns
-# TODO: add duration in CYF?
-cyf_collapsed <- cyf %>% 
-    select(-CAS_ID, -CL_ID, -BRTH_DT, -starts_with('INVLV'))
-
-# Just keep one row for each individual
-cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
-
-# Shelters
-#min_stay=min(DURATION_OF_STAY),
-#max_stay=max(DURATION_OF_STAY),
-shelters_collapsed <- shelters %>%
-    group_by(mci) %>%
-    summarize(shelter_num_stays=n(),
-              shelter_num_unique_hud_types=n_distinct(HUD_PROJECT_TYPE),
-              shelter_avg_stay=median(DURATION_OF_STAY))
-
-# Combined dataset
-dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'), 
-             shelters_collapsed, by='mci')
-
-# Drop the two rows with NA's
-dat <- dat[complete.cases(dat),]
-
-dat <- dat %>% filter(shelter_avg_stay < 5000)
-
-# Remove entries with values outside of the expected range
-
-# Drop outliers detected in PCA plot
-# 100050347 - min_stay = 730488
-# 100308371 - total_units 23,468
-# 1000049489 - min_stay 32,872
-#dat <- dat[!dat$mci %in% c(1000050347, 1000308371, 1000049489, 1000288792),]
+ids_to_use <- common_ids
+analysis_name <- 'combined'
+analysis_version <- 'v1.1'
 ```
 
-Variable correlation heatmap
-
-```{r, variable_heatmap}
-# version of data with categorical variabled numerically encoded
-dat_numeric <- dat
-dat_numeric$RACE <- as.numeric(factor(dat$RACE))
-dat_numeric$GENDER <- as.numeric(factor(dat$GENDER))
-
-# drop id column
-dat_numeric <- dat_numeric[,2:ncol(dat_numeric)]
-dat_numeric <- as.matrix(dat_numeric)
-
-cor_mat <- cor(dat_numeric, method='spearman')
-heatmap.2(cor_mat, trace='none', col=viridis, margin=c(16,16))
+```{r child='src/results.Rmd'}
 ```
 
-Individual correlation heatmap
-
-```{r, individual_heatmap}
-cor_mat <- cor(t(dat_numeric), method='spearman')
-heatmap.2(cor_mat, trace='none', col=viridis)
-```
-
-PCA of individuals
-
-```{r, individual_pca}
-prcomp_results <- prcomp(dat_numeric)
-var_explained <- round(summary(prcomp_results)$importance[2,] * 100, 2)
-
-xl <- sprintf("PC1 (%.2f%% variance)", var_explained[1])
-yl <- sprintf("PC2 (%.2f%% variance)", var_explained[2])
-
-# Dataframe for PCA plot
-df <- data.frame(id=dat[,'mci'],
-                 pc1=prcomp_results$x[,1], 
-                 pc2=prcomp_results$x[,2],
-                 gender=dat[,'GENDER'],
-                 race=dat[,'RACE'])
-# PCA plot
-plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
-    geom_point(stat="identity",size=5) +
-    geom_text(aes(label=id), angle=45, size=4, vjust=2) +
-    xlab(xl) + ylab(yl) +
-    ggtitle(sprintf("PCA: Individuals")) +
-    theme(axis.ticks=element_blank(), axis.text.x=element_text(angle=-90))
-plot(plt)
-```
+BHS, CYF
+--------
 
 ```{r}
-write.csv(dat, file='data/combined/combined_v1.1.csv')
+ids_to_use <- bhs_cyf
+analysis_name <- 'bhs_cyf'
+analysis_version <- 'v1.1'
+
+datasets <- c('bhs', 'cyf')
+```
+
+```{r child='src/results.Rmd'}
 ```
 
 System Info
