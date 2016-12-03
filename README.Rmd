@@ -48,6 +48,10 @@ library('venneuler')
 shelters <- read_csv('data/raw/HomelessShelters.csv.gz', progress=FALSE) %>%
     rename(mci=MCI_ID_OR_HMIS_CLIENT_ID)
 
+# Remove shelter entries with MCI identifier < 10 digits
+# (See note in original xls file)
+shelters <- shelters[nchar(shelters$mci) == 10,]
+
 # Behavioral Health Services
 bhs <- read_csv('data/raw/Behavioral Health Services.csv.gz', progress=FALSE) %>%
     rename(mci=MCI_UNIQ_ID)
@@ -136,6 +140,7 @@ example_youth <- multi_row_individuals[1]
 
 bhs %>% 
     filter(mci == example_youth) %>% 
+    head(10) %>%
     kable
 ```
 
