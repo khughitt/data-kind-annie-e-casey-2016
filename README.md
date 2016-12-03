@@ -28,39 +28,10 @@ Data Preparation
 ``` r
 library('readr')
 library('dplyr')
-```
-
-    ## 
-    ## Attaching package: 'dplyr'
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     filter, lag
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
-
-``` r
 library('ggplot2')
 library('gplots')
-```
-
-    ## 
-    ## Attaching package: 'gplots'
-
-    ## The following object is masked from 'package:stats':
-    ## 
-    ##     lowess
-
-``` r
 library('knitr')
 library('venneuler')
-```
-
-    ## Loading required package: rJava
-
-``` r
 library('viridis')
 
 opts_chunk$set(fig.width=1080/96,
@@ -401,9 +372,9 @@ Combine Datasets
 bhs_collapsed <- bhs %>%
     group_by(mci) %>%
     summarize(num_visits=n(),
-              num_unique_providers=n_distinct(PRVDR_NAME),
+              num_unique_providers=n_distinct(PRVDR_NAME))
               #county_tot=sum(CNTY_TOT),
-              total_units=sum(TOT_UNITS))
+              #total_units=sum(TOT_UNITS))
 
 # drop INVLV and birthdate columns
 cyf_collapsed <- cyf %>% 
@@ -431,7 +402,8 @@ dat <- dat[complete.cases(dat),]
 # Drop outliers detected in PCA plot
 # 100050347 - min_stay = 730488
 # 100308371 - total_units 23,468
-dat <- dat[!dat$mci %in% c(100050347, 1000308371),]
+# 1000049489 - min_stay 32,872
+dat <- dat[!dat$mci %in% c(1000050347, 1000308371, 1000049489),]
 ```
 
 Variable correlation heatmap
@@ -480,7 +452,6 @@ df <- data.frame(id=dat[,'mci'],
 plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
     geom_point(stat="identity",size=5) +
     geom_text(aes(label=id), angle=45, size=4, vjust=2) +
-    #scale_shape_manual(values=1:nlevels(batch)) +
     xlab(xl) + ylab(yl) +
     ggtitle(sprintf("PCA: Individuals")) +
     theme(axis.ticks=element_blank(), axis.text.x=element_text(angle=-90))
@@ -488,6 +459,10 @@ plot(plt)
 ```
 
 ![](README_files/figure-markdown_github/individual_pca-1.png)
+
+``` r
+write.csv(dat, file='data/combined/combined_v1.0.csv')
+```
 
 System Info
 ===========
