@@ -371,12 +371,13 @@ Combine Datasets
 # Behavior and health services
 bhs_collapsed <- bhs %>%
     group_by(mci) %>%
-    summarize(num_visits=n(),
-              num_unique_providers=n_distinct(PRVDR_NAME))
+    summarize(bhs_num_visits=n(),
+              bhs_num_unique_providers=n_distinct(PRVDR_NAME))
               #county_tot=sum(CNTY_TOT),
               #total_units=sum(TOT_UNITS))
 
 # drop INVLV and birthdate columns
+# TODO: add duration in CYF?
 cyf_collapsed <- cyf %>% 
     select(-CAS_ID, -CL_ID, -BRTH_DT, -starts_with('INVLV'))
 
@@ -384,13 +385,13 @@ cyf_collapsed <- cyf %>%
 cyf_collapsed <- cyf_collapsed[!duplicated(cyf_collapsed$mci),]
 
 # Shelters
+#min_stay=min(DURATION_OF_STAY),
+#max_stay=max(DURATION_OF_STAY),
 shelters_collapsed <- shelters %>%
     group_by(mci) %>%
-    summarize(num_shelter_stays=n(),
-              num_unique_hud_proj_types=n_distinct(HUD_PROJECT_TYPE),
-              min_stay=min(DURATION_OF_STAY),
-              avg_stay=median(DURATION_OF_STAY),
-              max_stay=max(DURATION_OF_STAY))
+    summarize(shelter_num_stays=n(),
+              shelter_num_unique_hud_types=n_distinct(HUD_PROJECT_TYPE),
+              shelter_avg_stay=median(DURATION_OF_STAY))
 
 # Combined dataset
 dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'), 
@@ -399,11 +400,15 @@ dat <- merge(merge(bhs_collapsed, cyf_collapsed, by='mci'),
 # Drop the two rows with NA's
 dat <- dat[complete.cases(dat),]
 
+dat <- dat %>% filter(shelter_avg_stay < 5000)
+
+# Remove entries with values outside of the expected range
+
 # Drop outliers detected in PCA plot
 # 100050347 - min_stay = 730488
 # 100308371 - total_units 23,468
 # 1000049489 - min_stay 32,872
-dat <- dat[!dat$mci %in% c(1000050347, 1000308371, 1000049489),]
+#dat <- dat[!dat$mci %in% c(1000050347, 1000308371, 1000049489, 1000288792),]
 ```
 
 Variable correlation heatmap
@@ -419,7 +424,7 @@ dat_numeric <- dat_numeric[,2:ncol(dat_numeric)]
 dat_numeric <- as.matrix(dat_numeric)
 
 cor_mat <- cor(dat_numeric, method='spearman')
-heatmap.2(cor_mat, trace='none', col=viridis)
+heatmap.2(cor_mat, trace='none', col=viridis, margin=c(16,16))
 ```
 
 ![](README_files/figure-markdown_github/variable_heatmap-1.png)
