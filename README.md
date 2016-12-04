@@ -30,15 +30,15 @@ Datasets currently being used in this analysis:
 -   Behavioral Health Services.csv
 -   CYF Active 2010 to 2016-11-09.csv
 -   HomelessShelters.csv
+-   rp\_placements\_clean.csv
 
 Other datasets and tables available:
 
 -   Allegheny County Aggregate Data.xlsx
 -   IDS Variables.xlsx
 -   PGHSNAP - Neighborhoods\_ All Raw Data.xlsx
--   rp\_placements\_clean.csv
 
-Note: some of the files ending with "(1).csv" have been renamed to ".csv".
+Note: some of the files ending with originally ending with "(1).csv" have been renamed to ".csv".
 
 Data Preparation
 ================
@@ -55,6 +55,7 @@ library('knitr')
 library('venneuler')
 library('viridis')
 library('GGally')
+library('scales')
 
 set.seed(1)
 
@@ -126,7 +127,7 @@ bhs <- read_csv('data/raw/Behavioral Health Services.csv.gz', progress=FALSE) %>
     ## 690640 TOT_UNITS no trailing characters    .29
 
 ``` r
-# CYF Active
+# Child, Youth, and Family (CYF)
 cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE) %>%
     rename(mci=MCI_ID)
 ```
@@ -144,6 +145,52 @@ cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE)
     ##   INVLV_END_DT = col_character()
     ## )
 
+``` r
+# Foster care placements
+placements <- read_csv('data/raw/rp_placements_clean.csv.gz', progress=FALSE) %>%
+    rename(mci=MCI_ID)
+```
+
+    ## Warning: Missing column names filled in: 'X1' [1]
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_integer(),
+    ##   JID = col_character(),
+    ##   GENDER = col_character(),
+    ##   ETHNCTY_DESC = col_character(),
+    ##   RACE_GROUP = col_character(),
+    ##   Regional.Office..Latest. = col_character(),
+    ##   REG_OFFICE_RMVLDT = col_character(),
+    ##   CLIENT_RMVLDT = col_double(),
+    ##   RMVL_TYPE = col_character(),
+    ##   RMVL_DATE = col_date(format = ""),
+    ##   RTRN_DATE = col_date(format = ""),
+    ##   RMVL_OPEN_PLMT = col_character(),
+    ##   RMVL_OPEN = col_character(),
+    ##   PLCMNT_TYPE = col_character(),
+    ##   RMVL_TYPE.1 = col_character(),
+    ##   Placement.Referral.Type = col_character(),
+    ##   TYPE_PLACEMENT = col_character(),
+    ##   ANALYSIS_ENTRY_DT = col_date(format = ""),
+    ##   ANALYSIS_EXIT_DT = col_date(format = ""),
+    ##   ENTRY_TIME = col_time(format = ""),
+    ##   EXIT_TIME = col_time(format = "")
+    ##   # ... with 14 more columns
+    ## )
+
+    ## See spec(...) for full column specifications.
+
+    ## Warning: 9252 parsing failures.
+    ## row        col   expected      actual
+    ##   2 EXIT_TIME  valid date 12:32:00 PM
+    ##   3 EXIT_TIME  valid date 12:00:00 PM
+    ##   7 ENTRY_TIME valid date 12:00:00 PM
+    ##  13 ENTRY_TIME valid date 12:00:00 PM
+    ##  13 EXIT_TIME  valid date 12:00:00 PM
+    ## ... .......... .......... ...........
+    ## See problems(...) for more details.
+
 Summary of data overlap
 -----------------------
 
@@ -153,6 +200,9 @@ common_ids <- intersect(intersect(bhs$mci, cyf$mci), shelters$mci)
 
 # Individuals in both BHS and CYF datasets
 bhs_cyf  <- intersect(bhs$mci, cyf$mci)
+
+# Individuals in both CYF and foster care placements
+cyf_placements <- intersect(cyf$mci, placements$mci)
 
 # Individuals in both BHS and Shelter datasets
 bhs_shelters  <- intersect(bhs$mci, shelters$mci)
@@ -172,7 +222,8 @@ vd <- venneuler(c(bhs=length(bhs_ids), cyf=length(cyf_ids),
                   "cyf&shelt"=length(cyf_shelters),
                   "bhs&cyf&shelt"=length(common_ids)))
 vd$labels <- c(paste0("bhs\n", length(bhs_ids)),
-               paste0("cyf\n", length(cyf_ids)),
+               paste0("cyf\n", length(cyf_ids), "\n(", length(cyf_placements), 
+                      " foster placements)"),
                paste0("shelt\n", length(shelt_ids)))
 plot(vd)
 ```
@@ -486,7 +537,13 @@ plot(plt)
 
 ![](README_files/figure-markdown_github/individual_pca-1.png)
 
-### Other visualizations
+Save combined table...
+
+``` r
+write.csv(dat, file=sprintf('../data/combined/%s_%s.csv', analysis_name, analysis_version))
+```
+
+### Race vs. other variables
 
 ``` r
 # is there a relationship between race and variables? (just considered dominant
@@ -512,13 +569,42 @@ ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
-![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
-Save combined table...
+### Common behavior and health service types
+
+#### By Gender
 
 ``` r
-write.csv(dat, file=sprintf('../data/combined/%s_%s.csv', analysis_name, analysis_version))
+# top 5 bhs types
+top_bhs_types <- names(sort(table(bhs$SERVICE_NAME), decreasing=TRUE)[1:5])
+
+# create a modified version of the combined dataset with bhs type columns
+dat_with_bhs_type <- merge(dat, bhs %>% select(mci, SERVICE_NAME), by='mci')
+
+dat_with_bhs_type$SERVICE_NAME[!dat_with_bhs_type$SERVICE_NAME %in% top_bhs_types] <- 'Other'
+
+# vs. gender
+ggplot(dat_with_bhs_type, aes(x=GENDER)) +
+    geom_bar(aes(fill=SERVICE_NAME), position="dodge")
 ```
+
+![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
+
+#### By Race
+
+``` r
+#x <- dat_with_bhs_type %>% 
+#    group_by(GENDER, SERVICE_NAME) %>% 
+#    summarize(n=n()) %>%
+#    mutate(freq = n / sum(n))
+
+# vs. race
+ggplot(dat_with_bhs_type %>% filter(RACE %in% c('White', 'Black or African American')), aes(x=RACE)) +
+    geom_bar(aes(fill=SERVICE_NAME))
+```
+
+![](README_files/figure-markdown_github/bhs_vs_race-1.png)
 
 Shelters, CYF
 -------------
@@ -634,7 +720,7 @@ cor_mat <- cor(mat, method='spearman')
 heatmap.2(cor_mat, trace='none', col=viridis, cellnote=round(cor_mat, 3), margin=c(16,16))
 ```
 
-![](README_files/figure-markdown_github/variable_heatmap-17-1.png)
+![](README_files/figure-markdown_github/variable_heatmap-18-1.png)
 
 Individual correlation heatmap
 
@@ -654,7 +740,7 @@ if (nrow(mat) > 1000) {
 heatmap.2(cor_mat, trace='none', col=viridis)
 ```
 
-![](README_files/figure-markdown_github/individual_heatmap-18-1.png)
+![](README_files/figure-markdown_github/individual_heatmap-19-1.png)
 
 PCA of individuals
 
@@ -681,31 +767,7 @@ plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
 plot(plt)
 ```
 
-![](README_files/figure-markdown_github/individual_pca-19-1.png)
-
-### Other visualizations
-
-``` r
-# is there a relationship between race and variables? (just considered dominant
-# categories)
-dat_subset <- dat %>% 
-    filter(RACE %in% c('White', 'Black or African American')) %>%
-    select(-mci)
-ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
-```
-
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-
-![](README_files/figure-markdown_github/unnamed-chunk-20-1.png)
+![](README_files/figure-markdown_github/individual_pca-20-1.png)
 
 Save combined table...
 
@@ -876,28 +938,6 @@ plot(plt)
 
 ![](README_files/figure-markdown_github/individual_pca-26-1.png)
 
-### Other visualizations
-
-``` r
-# is there a relationship between race and variables? (just considered dominant
-# categories)
-dat_subset <- dat %>% 
-    filter(RACE %in% c('White', 'Black or African American')) %>%
-    select(-mci)
-ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
-```
-
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-
-![](README_files/figure-markdown_github/unnamed-chunk-27-1.png)
-
 Save combined table...
 
 ``` r
@@ -927,9 +967,10 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] GGally_1.3.0    viridis_0.3.4   venneuler_1.1-0 rJava_0.9-8    
-    ##  [5] knitr_1.15.1    gplots_3.0.1    ggplot2_2.2.0   dplyr_0.5.0    
-    ##  [9] readr_1.0.0     rmarkdown_1.2   nvimcom_0.9-25  colorout_1.1-0 
+    ##  [1] rmarkdown_1.2   scales_0.4.1    GGally_1.3.0    viridis_0.3.4  
+    ##  [5] venneuler_1.1-0 rJava_0.9-8     knitr_1.15.1    gplots_3.0.1   
+    ##  [9] ggplot2_2.2.0   dplyr_0.5.0     readr_1.0.0     nvimcom_0.9-25 
+    ## [13] colorout_1.1-0 
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] Rcpp_0.12.8         RColorBrewer_1.1-2  plyr_1.8.4         
@@ -940,7 +981,7 @@ sessionInfo()
     ## [16] stringr_1.1.0       gtools_3.5.0        caTools_1.17.1     
     ## [19] rprojroot_1.1       grid_3.3.2          reshape_0.8.6      
     ## [22] R6_2.2.0            gdata_2.17.0        reshape2_1.4.2     
-    ## [25] magrittr_1.5        backports_1.0.4     scales_0.4.1       
-    ## [28] htmltools_0.3.5     assertthat_0.1      colorspace_1.3-1   
-    ## [31] labeling_0.3        KernSmooth_2.23-15  stringi_1.1.2      
-    ## [34] lazyeval_0.2.0.9000 munsell_0.4.3
+    ## [25] magrittr_1.5        backports_1.0.4     htmltools_0.3.5    
+    ## [28] assertthat_0.1      colorspace_1.3-1    labeling_0.3       
+    ## [31] KernSmooth_2.23-15  stringi_1.1.2       lazyeval_0.2.0.9000
+    ## [34] munsell_0.4.3

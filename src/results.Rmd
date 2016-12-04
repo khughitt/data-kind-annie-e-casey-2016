@@ -125,16 +125,6 @@ plt <- ggplot(df, aes(pc1, pc2, color=race, shape=gender)) +
 plot(plt)
 ```
 
-### Other visualizations
-
-```{r}
-# is there a relationship between race and variables? (just considered dominant
-# categories)
-dat_subset <- dat %>% 
-    filter(RACE %in% c('White', 'Black or African American')) %>%
-    select(-mci)
-ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
-```
 
 Save combined table...
 

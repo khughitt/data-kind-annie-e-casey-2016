@@ -1,5 +1,5 @@
 ---
-title: "DataKind 2016: Annie E. Casey Foundation"
+title: "DataKind 2016 Data Dive: Connecting Public Data Systems to Better Understand System-Involved Youth (Annie E. Casey Foundation)"
 author: V. Keith Hughitt
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -33,15 +33,16 @@ Datasets currently being used in this analysis:
 - Behavioral Health Services.csv
 - CYF Active 2010 to 2016-11-09.csv
 - HomelessShelters.csv
+- rp_placements_clean.csv
 
 Other datasets and tables available:
 
 - Allegheny County Aggregate Data.xlsx
 - IDS Variables.xlsx
 - PGHSNAP - Neighborhoods_ All Raw Data.xlsx
-- rp_placements_clean.csv
 
-Note: some of the files ending with "(1).csv" have been renamed to ".csv".
+Note: some of the files ending with originally ending with "(1).csv" have been
+renamed to ".csv".
 
 Data Preparation
 ================
@@ -58,6 +59,7 @@ library('knitr')
 library('venneuler')
 library('viridis')
 library('GGally')
+library('scales')
 
 set.seed(1)
 
@@ -85,8 +87,12 @@ shelters <- shelters[nchar(shelters$mci) == 10,]
 bhs <- read_csv('data/raw/Behavioral Health Services.csv.gz', progress=FALSE) %>%
     rename(mci=MCI_UNIQ_ID)
 
-# CYF Active
+# Child, Youth, and Family (CYF)
 cyf <- read_csv('data/raw/CYF Active 2010 to 2016-11-09.csv.gz', progress=FALSE) %>%
+    rename(mci=MCI_ID)
+
+# Foster care placements
+placements <- read_csv('data/raw/rp_placements_clean.csv.gz', progress=FALSE) %>%
     rename(mci=MCI_ID)
 ```
 
@@ -99,6 +105,9 @@ common_ids <- intersect(intersect(bhs$mci, cyf$mci), shelters$mci)
 
 # Individuals in both BHS and CYF datasets
 bhs_cyf  <- intersect(bhs$mci, cyf$mci)
+
+# Individuals in both CYF and foster care placements
+cyf_placements <- intersect(cyf$mci, placements$mci)
 
 # Individuals in both BHS and Shelter datasets
 bhs_shelters  <- intersect(bhs$mci, shelters$mci)
@@ -118,7 +127,8 @@ vd <- venneuler(c(bhs=length(bhs_ids), cyf=length(cyf_ids),
                   "cyf&shelt"=length(cyf_shelters),
                   "bhs&cyf&shelt"=length(common_ids)))
 vd$labels <- c(paste0("bhs\n", length(bhs_ids)),
-               paste0("cyf\n", length(cyf_ids)),
+               paste0("cyf\n", length(cyf_ids), "\n(", length(cyf_placements), 
+                      " foster placements)"),
                paste0("shelt\n", length(shelt_ids)))
 plot(vd)
 
@@ -215,6 +225,48 @@ datasets <- c('bhs', 'cyf', 'shelters')
 ```
 
 ```{r child='src/results.Rmd'}
+```
+
+### Race vs. other variables
+
+```{r}
+# is there a relationship between race and variables? (just considered dominant
+# categories)
+dat_subset <- dat %>% 
+    filter(RACE %in% c('White', 'Black or African American')) %>%
+    select(-mci)
+ggpairs(dat_subset, mapping=aes(colour=RACE, alpha=0.4))
+```
+
+### Common behavior and health service types
+
+#### By Gender
+
+```{r}
+# top 5 bhs types
+top_bhs_types <- names(sort(table(bhs$SERVICE_NAME), decreasing=TRUE)[1:5])
+
+# create a modified version of the combined dataset with bhs type columns
+dat_with_bhs_type <- merge(dat, bhs %>% select(mci, SERVICE_NAME), by='mci')
+
+dat_with_bhs_type$SERVICE_NAME[!dat_with_bhs_type$SERVICE_NAME %in% top_bhs_types] <- 'Other'
+
+# vs. gender
+ggplot(dat_with_bhs_type, aes(x=GENDER)) +
+    geom_bar(aes(fill=SERVICE_NAME), position="dodge")
+```
+
+#### By Race
+
+```{r bhs_vs_race}
+#x <- dat_with_bhs_type %>% 
+#    group_by(GENDER, SERVICE_NAME) %>% 
+#    summarize(n=n()) %>%
+#    mutate(freq = n / sum(n))
+
+# vs. race
+ggplot(dat_with_bhs_type %>% filter(RACE %in% c('White', 'Black or African American')), aes(x=RACE)) +
+    geom_bar(aes(fill=SERVICE_NAME))
 ```
 
 Shelters, CYF
